@@ -1,15 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from starlette import status
 from typing import Annotated
 from sqlalchemy.orm import Session
-from database import SessionLocal
+from database import SessionLocal, engine
 from models import Todos
 from pydantic import BaseModel, Field
 from .auth import get_current_user
+import models
 
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/todos',
+    tags=['todos'],
+    responses={404: {"description": "Not Found"}}
+)
 
+models.Base.metadata.create_all(bind=engine)
+
+templates = Jinja2Templates(directory='templates')
 
 def get_db():
     db = SessionLocal()
@@ -27,6 +37,9 @@ class TodoRequest(BaseModel):
     priority: int = Field(gt=0, lt=6)
     complete: bool
 
+@router.get("/test")
+async def test(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
 
 @router.get("/", status_code=status.HTTP_200_OK)
 async def read_all(user: user_dependancy, db: db_dependancy):
